@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         eBucks 40%
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.2
 // @description  Highlight 40% eBucks discounts
 // @author       You
 // @match        https://www.ebucks.com/web/shop/categorySelected.do?*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=ebucks.com
+// @update       https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/ebucks40.js
 // @grant        none
 // ==/UserScript==
 
