@@ -11,10 +11,13 @@
 
 setTimeout(highlightWord, 3000);
 // Wait for slow 40% off to load
-setTimeout(highlightWord, 5000);
+setTimeout(highlightWord, 10000);
 
 function highlightWord() {
     console.log("Highlighting");
+    document.body.innerHTML = document.body.innerHTML.replace(/You get up to 40% off/g, function(m){
+        return '<span style="background-color:yellow">'+m+'</span>'
+    });
     document.body.innerHTML = document.body.innerHTML.replace(/Get up to 40% off/g, function(m){
         return '<span style="background-color:yellow">'+m+'</span>'
     });
