@@ -1,0 +1,62 @@
+// ==UserScript==
+// @name         Amazon.co.za RAM Highlighter
+// @namespace    http://tampermonkey.net/
+// @version      1.3
+// @description  Highlights DDR4 (yellow) and DDR5 (light red) 16/32/64GB RAM modules
+// @match        *://*.amazon.co.za/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    const hasDDR4 = /DDR4/i;
+    const hasDDR5 = /DDR5/i;
+    const hasCapacity = /(16|32|64)\s*GB/i;
+
+    function highlightProducts() {
+        // Select elements that haven't been highlighted yet to avoid infinite loops
+        const productTitles = document.querySelectorAll('h2 span.a-text-normal:not(.ram-highlighted), h2 a span:not(.ram-highlighted), [data-cy="title-recipe"] h2:not(.ram-highlighted)');
+
+        if (productTitles.length === 0) return;
+
+        let newlyHighlighted = 0;
+
+        productTitles.forEach(title => {
+            // Mark as processed immediately
+            title.classList.add('ram-highlighted');
+
+            const text = title.textContent;
+
+            if (hasCapacity.test(text)) {
+                let bgColor = '';
+
+                if (hasDDR4.test(text)) {
+                    bgColor = 'yellow';
+                } else if (hasDDR5.test(text)) {
+                    bgColor = '#ffcccc'; // Light red
+                }
+
+                if (bgColor) {
+                    title.style.setProperty('background-color', bgColor, 'important');
+                    title.style.setProperty('color', 'black', 'important');
+                    title.style.setProperty('font-weight', 'bold', 'important');
+                    newlyHighlighted++;
+                }
+            }
+        });
+
+        if (newlyHighlighted > 0) {
+            console.log(`[RAM Highlighter] Found and highlighted ${newlyHighlighted} new products.`);
+        }
+    }
+
+    highlightProducts();
+
+    const observer = new MutationObserver(() => {
+        highlightProducts();
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+})();
