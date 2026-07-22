@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Amazon.co.za RAM Highlighter
 // @namespace    http://tampermonkey.net/
-// @version      1.3
-// @description  Highlights DDR4 (yellow) and DDR5 (light red) 16/32/64GB RAM modules
+// @version      1.4
+// @description  Highlights DDR4 (16/32/64GB - yellow) and DDR5 (8/16/24/32/48/64GB - light red) RAM modules
 // @match        *://*.amazon.co.za/*
 // @grant        none
 // ==/UserScript==
@@ -12,7 +12,10 @@
 
     const hasDDR4 = /DDR4/i;
     const hasDDR5 = /DDR5/i;
-    const hasCapacity = /(16|32|64)\s*GB/i;
+
+    // Separate size patterns for DDR4 and DDR5
+    const ddr4Capacity = /(16|32|64)\s*GB/i;
+    const ddr5Capacity = /(8|16|24|32|48|64)\s*GB/i;
 
     function highlightProducts() {
         // Select elements that haven't been highlighted yet to avoid infinite loops
@@ -27,22 +30,19 @@
             title.classList.add('ram-highlighted');
 
             const text = title.textContent;
+            let bgColor = '';
 
-            if (hasCapacity.test(text)) {
-                let bgColor = '';
+            if (hasDDR4.test(text) && ddr4Capacity.test(text)) {
+                bgColor = 'yellow';
+            } else if (hasDDR5.test(text) && ddr5Capacity.test(text)) {
+                bgColor = '#ffcccc'; // Light red
+            }
 
-                if (hasDDR4.test(text)) {
-                    bgColor = 'yellow';
-                } else if (hasDDR5.test(text)) {
-                    bgColor = '#ffcccc'; // Light red
-                }
-
-                if (bgColor) {
-                    title.style.setProperty('background-color', bgColor, 'important');
-                    title.style.setProperty('color', 'black', 'important');
-                    title.style.setProperty('font-weight', 'bold', 'important');
-                    newlyHighlighted++;
-                }
+            if (bgColor) {
+                title.style.setProperty('background-color', bgColor, 'important');
+                title.style.setProperty('color', 'black', 'important');
+                title.style.setProperty('font-weight', 'bold', 'important');
+                newlyHighlighted++;
             }
         });
 
@@ -51,12 +51,15 @@
         }
     }
 
+    // 1. Run once immediately in case the page is already fully loaded
     highlightProducts();
 
+    // 2. Set up a MutationObserver to watch for dynamic background loading or infinite scrolling
     const observer = new MutationObserver(() => {
         highlightProducts();
     });
 
+    // Start observing the entire body for injected elements
     observer.observe(document.body, { childList: true, subtree: true });
 
 })();
