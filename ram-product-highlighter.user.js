@@ -4,6 +4,8 @@
 // @version      1.4
 // @description  Highlights DDR4 (16/32/64GB - yellow) and DDR5 (8/16/24/32/48/64GB - light red) RAM modules
 // @match        *://*.amazon.co.za/*
+// @updateURL    https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/ram-product-highlighter
+// @downloadURL  https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/ram-product-highlighter
 // @grant        none
 // ==/UserScript==
 
