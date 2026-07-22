@@ -1,67 +1,82 @@
 // ==UserScript==
-// @name         Amazon.co.za RAM Highlighter
+// @name         Amazon.co.za RAM Highlighter & Filter
 // @namespace    http://tampermonkey.net/
-// @version      1.4
-// @description  Highlights DDR4 (16/32/64GB - yellow) and DDR5 (8/16/24/32/48/64GB - light red) RAM modules
+// @version      1.7
+// @description  Highlights DDR4 (16/32/64GB - yellow) and DDR5 (8/16/24/32/48/64GB - light red) RAM modules; hides 4GB/8GB DDR4 and all DDR3 modules
 // @match        *://*.amazon.co.za/*
-// @updateURL    https://github.com/chickenbeef/greasemonkeys/raw/refs/heads/main/ram-product-highlighter.user.js
-// @downloadURL  https://github.com/chickenbeef/greasemonkeys/raw/refs/heads/main/ram-product-highlighter.user.js
+// @updateURL    https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/ram-product-highlighter
+// @downloadURL  https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/ram-product-highlighter
 // @grant        none
 // ==/UserScript==
 
 (function() {
     'use strict';
 
+    const hasDDR3 = /DDR3/i;
     const hasDDR4 = /DDR4/i;
     const hasDDR5 = /DDR5/i;
 
-    // Separate size patterns for DDR4 and DDR5
+    // Capacity regex patterns
     const ddr4Capacity = /(16|32|64)\s*GB/i;
+    const ddr4Exclude = /\b(4|8)\s*GB\b/i;
     const ddr5Capacity = /(8|16|24|32|48|64)\s*GB/i;
 
-    function highlightProducts() {
-        // Select elements that haven't been highlighted yet to avoid infinite loops
+    function processProducts() {
+        // Select elements that haven't been processed yet
         const productTitles = document.querySelectorAll('h2 span.a-text-normal:not(.ram-highlighted), h2 a span:not(.ram-highlighted), [data-cy="title-recipe"] h2:not(.ram-highlighted)');
 
         if (productTitles.length === 0) return;
 
-        let newlyHighlighted = 0;
+        let newlyProcessed = 0;
 
         productTitles.forEach(title => {
-            // Mark as processed immediately
             title.classList.add('ram-highlighted');
 
             const text = title.textContent;
-            let bgColor = '';
+            const card = title.closest('.s-result-item, [data-component-type="s-search-result"]');
 
-            if (hasDDR4.test(text) && ddr4Capacity.test(text)) {
-                bgColor = 'yellow';
+            if (hasDDR3.test(text)) {
+                // Hide all DDR3 product cards
+                if (card) {
+                    card.style.setProperty('display', 'none', 'important');
+                    newlyProcessed++;
+                }
+            } else if (hasDDR4.test(text)) {
+                if (ddr4Capacity.test(text)) {
+                    // Highlight 16GB, 32GB, 64GB DDR4
+                    title.style.setProperty('background-color', 'yellow', 'important');
+                    title.style.setProperty('color', 'black', 'important');
+                    title.style.setProperty('font-weight', 'bold', 'important');
+                    newlyProcessed++;
+                } else if (ddr4Exclude.test(text)) {
+                    // Hide 4GB and 8GB DDR4 product cards
+                    if (card) {
+                        card.style.setProperty('display', 'none', 'important');
+                        newlyProcessed++;
+                    }
+                }
             } else if (hasDDR5.test(text) && ddr5Capacity.test(text)) {
-                bgColor = '#ffcccc'; // Light red
-            }
-
-            if (bgColor) {
-                title.style.setProperty('background-color', bgColor, 'important');
+                // Highlight DDR5 modules
+                title.style.setProperty('background-color', '#ffcccc', 'important');
                 title.style.setProperty('color', 'black', 'important');
                 title.style.setProperty('font-weight', 'bold', 'important');
-                newlyHighlighted++;
+                newlyProcessed++;
             }
         });
 
-        if (newlyHighlighted > 0) {
-            console.log(`[RAM Highlighter] Found and highlighted ${newlyHighlighted} new products.`);
+        if (newlyProcessed > 0) {
+            console.log(`[RAM Highlighter] Processed ${newlyProcessed} new products.`);
         }
     }
 
-    // 1. Run once immediately in case the page is already fully loaded
-    highlightProducts();
+    // 1. Run once immediately
+    processProducts();
 
-    // 2. Set up a MutationObserver to watch for dynamic background loading or infinite scrolling
+    // 2. Set up a MutationObserver for dynamic loads
     const observer = new MutationObserver(() => {
-        highlightProducts();
+        processProducts();
     });
 
-    // Start observing the entire body for injected elements
     observer.observe(document.body, { childList: true, subtree: true });
 
 })();
