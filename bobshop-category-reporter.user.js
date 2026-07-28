@@ -1,16 +1,30 @@
 // ==UserScript==
 // @name         Bob Shop 1-Click Direct Category Report (Card View)
 // @namespace    http://tampermonkey.net/
-// @version      3.0
+// @version      3.1
 // @description  Adds a 1-click quick report button directly on product cards during category/search browsing on Bob Shop.
 // @match        https://www.bobshop.co.za/*
-// @grant        none
+// @grant        GM_registerMenuCommand
+// @updateURL    https://github.com/chickenbeef/greasemonkeys/raw/refs/heads/main/bobshop-category-reporter.user.js
+// @downloadURL  https://github.com/chickenbeef/greasemonkeys/raw/refs/heads/main/bobshop-category-reporter.user.js
 // ==/UserScript==
 
 (function() {
     'use strict';
 
-    let userEmail = localStorage.getItem('bobshop_report_email') || '';
+    const STORAGE_KEY = 'bobshop_report_email';
+    let userEmail = localStorage.getItem(STORAGE_KEY) || '';
+
+    function promptForEmail() {
+        const input = prompt('Enter your Bob Shop email address for reports:', userEmail);
+        if (input) {
+            userEmail = input.trim();
+            localStorage.setItem(STORAGE_KEY, userEmail);
+            alert('Email updated to: ' + userEmail);
+        }
+    }
+
+    GM_registerMenuCommand('Change Report Email', promptForEmail);
 
     // Extract Trade ID from Bob Shop product URLs (/p/123456789 or Trade_TradeId=123456789)
     function extractTradeId(urlStr) {
@@ -22,10 +36,8 @@
     // Submit report via background POST request
     async function submitReport(tradeId, btnElement) {
         if (!userEmail) {
-            const input = prompt('Enter your Bob Shop email address for reports:');
-            if (!input) return;
-            userEmail = input.trim();
-            localStorage.setItem('bobshop_report_email', userEmail);
+            promptForEmail();
+            if (!userEmail) return;
         }
 
         btnElement.innerText = '⏳ Reporting...';
@@ -119,7 +131,7 @@
 
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                e.stopPropagation(); // Prevents navigating to product page when clicking report
+                e.stopPropagation();
                 submitReport(tradeId, btn);
             });
 
@@ -127,7 +139,6 @@
         });
     }
 
-    // Initial run and observation for pagination / infinite scroll
     attachButtonsToCards();
     const observer = new MutationObserver(attachButtonsToCards);
     observer.observe(document.body, { childList: true, subtree: true });
