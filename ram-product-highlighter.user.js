@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Amazon.co.za RAM Highlighter & Filter
 // @namespace    http://tampermonkey.net/
-// @version      1.7
+// @version      1.8
 // @description  Highlights DDR4 (16/32/64GB - yellow) and DDR5 (8/16/24/32/48/64GB - light red) RAM modules; hides 4GB/8GB DDR4 and all DDR3 modules
 // @match        *://*.amazon.co.za/*
 // @updateURL    https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/ram-product-highlighter
@@ -12,6 +12,7 @@
 (function() {
     'use strict';
 
+    const hasDDR2 = /DDR2/i;
     const hasDDR3 = /DDR3/i;
     const hasDDR4 = /DDR4/i;
     const hasDDR5 = /DDR5/i;
@@ -35,8 +36,8 @@
             const text = title.textContent;
             const card = title.closest('.s-result-item, [data-component-type="s-search-result"]');
 
-            if (hasDDR3.test(text)) {
-                // Hide all DDR3 product cards
+            if (hasDDR3.test(text) || hasDDR2.test(text)) {
+                // Hide all DDR3 and DDR2 product cards
                 if (card) {
                     card.style.setProperty('display', 'none', 'important');
                     newlyProcessed++;
