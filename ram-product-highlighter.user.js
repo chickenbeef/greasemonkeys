@@ -21,6 +21,7 @@
     const ddr4Capacity = /(16|32|64)\s*GB/i;
     const ddr4Exclude = /\b(4|8)\s*GB\b/i;
     const ddr5Capacity = /(8|16|24|32|48|64)\s*GB/i;
+    const ddr5SmallCapacity = /\b8\s*GB\b/i;
 
     function getProductPrice(card) {
         if (!card) return null;
@@ -56,13 +57,13 @@
                 const price = getProductPrice(card);
 
                 if (price !== null && price > 1800) {
-                    // Hide DDR4 costing strictly more than R2000
+                    // Hide DDR4 costing strictly more than R1800
                     if (card) {
                         card.style.setProperty('display', 'none', 'important');
                         newlyProcessed++;
                     }
                 } else if (ddr4Capacity.test(text)) {
-                    // Highlight 16GB, 32GB, 64GB DDR4 (<= R2000)
+                    // Highlight 16GB, 32GB, 64GB DDR4 (<= R1800)
                     title.style.setProperty('background-color', 'yellow', 'important');
                     title.style.setProperty('color', 'black', 'important');
                     title.style.setProperty('font-weight', 'bold', 'important');
@@ -75,10 +76,21 @@
                     }
                 }
             } else if (hasDDR5.test(text) && ddr5Capacity.test(text)) {
-                title.style.setProperty('background-color', '#ffcccc', 'important');
-                title.style.setProperty('color', 'black', 'important');
-                title.style.setProperty('font-weight', 'bold', 'important');
-                newlyProcessed++;
+                const price = getProductPrice(card);
+
+                if (ddr5SmallCapacity.test(text) && price !== null && price > 900) {
+                    // Hide 8GB DDR5 modules costing more than R900
+                    if (card) {
+                        card.style.setProperty('display', 'none', 'important');
+                        newlyProcessed++;
+                    }
+                } else {
+                    // Highlight all other DDR5 (including 8GB <= R800)
+                    title.style.setProperty('background-color', '#ffcccc', 'important');
+                    title.style.setProperty('color', 'black', 'important');
+                    title.style.setProperty('font-weight', 'bold', 'important');
+                    newlyProcessed++;
+                }
             }
         });
 
