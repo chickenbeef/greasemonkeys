@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Amazon.co.za RAM Highlighter & Filter
 // @namespace    http://tampermonkey.net/
-// @version      1.9
+// @version      2.0
 // @description  Highlights DDR4 (16/32/64GB - yellow) and DDR5 (8/16/24/32/48/64GB - light red) RAM modules; hides 4GB/8GB DDR4, DDR4 > R2000, and all DDR3/DDR2 modules
 // @match        *://*.amazon.co.za/*
-// @updateURL    https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/ram-product-highlighter
-// @downloadURL  https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/ram-product-highlighter
+// @updateURL    https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/ram-product-highlighter.user.js
+// @downloadURL  https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/ram-product-highlighter.user.js
 // @grant        none
 // ==/UserScript==
 
