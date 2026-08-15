@@ -16,6 +16,8 @@
 // @match        https://*.amazon.in/*
 // @grant        none
 // @run-at       document-idle
+// @updateURL    https://github.com/chickenbeef/greasemonkeys/raw/refs/heads/main/amazon-price-filter-inputs.user.js
+// @downloadURL  https://github.com/chickenbeef/greasemonkeys/raw/refs/heads/main/amazon-price-filter-inputs.user.js
 // ==/UserScript==
 
 (function () {
