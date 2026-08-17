@@ -3,7 +3,7 @@
 // @namespace    https://amazon.com/
 // @version      1.0
 // @description  Replaces the Amazon price slider with min/max input boxes and a submit button.
-// @author       You
+// @author       chickenbeef
 // @match        https://*.amazon.com/*
 // @match        https://*.amazon.co.za/*
 // @match        https://*.amazon.co.uk/*
