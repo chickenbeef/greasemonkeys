@@ -6,6 +6,8 @@
 // @match        https://luna.amazon.com/*
 // @grant        GM_openInTab
 // @run-at       document-idle
+// @updateUrl    https://github.com/chickenbeef/greasemonkeys/raw/refs/heads/main/luna-games-auto-claim.user.js
+// @downloadUrl  https://github.com/chickenbeef/greasemonkeys/raw/refs/heads/main/luna-games-auto-claim.user.js
 // ==/UserScript==
 
 (function () {
