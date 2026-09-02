@@ -1,10 +1,12 @@
 // ==UserScript==
 // @name         Woolworths In-Store Deal Filter
 // @namespace    https://woolworths.co.za/
-// @version      1.0
+// @version      1.1
 // @description  Hides products without "In-Store Deal" on Woolworths and adds a floating toggle button.
 // @author       You
 // @match        https://www.woolworths.co.za/*
+// @updateURL    https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/woolies-instore-deal-filter.user.js
+// @downloadURL  https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/woolies-instore-deal-filter.user.js
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
