@@ -5,6 +5,8 @@
 // @description  Hides products without "In-Store Deal" on Woolworths and adds a floating toggle button.
 // @author       You
 // @match        https://www.woolworths.co.za/browse/*
+// @updateURL    https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/woolies-96-items-per-page.user.js
+// @downloadURL  https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/woolies-96-items-per-page.user.js
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
