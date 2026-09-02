@@ -5,6 +5,8 @@
 // @description  Intercepts Constructor.io catalog requests to display 96 items per page on Woolworths South Africa.
 // @author       Assistant
 // @match        https://www.woolworths.co.za/*
+// @updateURL    https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/woolies-96-items-per-page.user.js
+// @downloadURL  https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/woolies-96-items-per-page.user.js
 // @run-at       document-start
 // @grant        none
 // ==/UserScript==
