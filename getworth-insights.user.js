@@ -6,6 +6,8 @@
 // @match        https://www.getworth.co.za/cars-for-sale/*
 // @grant        none
 // @run-at       document-idle
+// @updateUrl    https://github.com/chickenbeef/greasemonkeys/raw/refs/heads/main/getworth-insights.user.js
+// @downloadUrl  https://github.com/chickenbeef/greasemonkeys/raw/refs/heads/main/getworth-insights.user.js
 // ==/UserScript==
 
 (function () {
