@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Amazon.co.za RAM Highlighter & Filter
 // @namespace    http://tampermonkey.net/
-// @version      3.0
+// @version      3.1
 // @description  Highlights DDR4 and DDR5 RAM modules; filters out unwanted modules with floating configuration controls.
-// @match        *://*.amazon.co.za/*
+// @match        https://www.amazon.co.za/s?i=electronics&rh=n%3A28035463031*
 // @updateURL    https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/ram-product-highlighter.user.js
 // @downloadURL  https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/ram-product-highlighter.user.js
 // @grant        none
