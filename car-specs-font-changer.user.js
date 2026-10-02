@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.0
 // @description  Forces the font to Arial for improved readability.
-// @author       You
+// @author       chickenbeef
 // @match        *://*.car-specs.za.net/*
 // @grant        GM_addStyle
 // ==/UserScript==
