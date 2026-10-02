@@ -5,6 +5,8 @@
 // @description  Restores the "Amazon.co.za" seller filter on search and browse pages where Amazon omits it.
 // @match        https://www.amazon.co.za/s*
 // @match        https://www.amazon.co.za/b*
+// @updateURL    https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/amazon-always-enable-seller-filter.user.js
+// @downloadURL  https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/amazon-always-enable-seller-filter.user.js
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @run-at       document-idle
