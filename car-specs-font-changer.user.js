@@ -6,6 +6,8 @@
 // @author       chickenbeef
 // @match        *://*.car-specs.za.net/*
 // @grant        GM_addStyle
+// @updateURL    https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/car-specs-font-changer.user.js
+// @downloadURL  https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/car-specs-font-changer.user.js
 // ==/UserScript==
 
 (function() {
