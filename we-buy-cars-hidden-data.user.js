@@ -16,9 +16,17 @@
 
     const API_BASE = 'https://appgateway.webuycars.co.za/website-elastic-backend/api/get-car/';
     let currentStockNumber = null;
-    let vehicleCache = new Map();
+    const vehicleCache = new Map();
 
     // --- 1. Helpers & Formatters ---
+    const normalizeStock = (val) => (val ? String(val).trim().toUpperCase() : null);
+
+    const getStockNumberFromUrl = () => {
+        // Matches alphanumeric stock numbers like 188011914 or 007A00182
+        const match = window.location.pathname.match(/\/car-for-sale\/[^/]+\/[^/]+\/([A-Za-z0-9_-]+)/i);
+        return match ? normalizeStock(match[1]) : null;
+    };
+
     const formatCurrency = (val) => {
         if (val === null || val === undefined || isNaN(val)) return 'N/A';
         return 'R ' + Number(val).toLocaleString('en-ZA');
@@ -32,7 +40,6 @@
     const isValidDate = (dateStr) => {
         if (!dateStr) return false;
         const d = new Date(dateStr);
-        // Filter out default .NET DateTime.MinValue (0001-01-01) or invalid dates
         return !isNaN(d.getTime()) && d.getFullYear() > 1970;
     };
 
@@ -42,21 +49,22 @@
         const now = new Date();
         const diffDays = Math.floor((now - d) / (1000 * 60 * 60 * 24));
         const formatted = d.toISOString().split('T')[0];
-        const rel = diffDays === 0 ? 'Today' : diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
+        const rel = diffDays <= 0 ? 'Today' : diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
         return `${formatted} <span class="wbc-sub">(${rel})</span>`;
     };
 
-    // Extract photobooth date from social/shop image URL: e.g. .../188011914020261007121948973.jpg
+    // Extract photobooth date from social/shop image URL: e.g. .../007A00182020261003164141880.jpg
     const extractPhotoboothDate = (data) => {
         const urls = [
             ...(data?.Images?.social || []),
             ...(data?.Images?.shop || [])
         ];
-        const stock = String(data?.StockNumber || '');
+        const stock = String(data?.StockNumber || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        if (!stock) return null;
+
         for (const url of urls) {
             const filename = url.split('/').pop() || '';
-            // Match stockNumber + single digit + YYYYMMDDHHMMSS
-            const regex = new RegExp(`^${stock}\\d(\\d{4})(\\d{2})(\\d{2})(\\d{2})(\\d{2})`);
+            const regex = new RegExp(`^${stock}\\d(\\d{4})(\\d{2})(\\d{2})(\\d{2})(\\d{2})`, 'i');
             const match = filename.match(regex);
             if (match) {
                 const [, year, month, day, hour, min] = match;
@@ -69,10 +77,14 @@
     // --- 2. Network Interceptor (Fetch & XHR) ---
     const handleApiData = (json) => {
         if (json && json.result && json.data && json.data.StockNumber) {
-            const stockNo = String(json.data.StockNumber);
+            const stockNo = normalizeStock(json.data.StockNumber);
             vehicleCache.set(stockNo, json.data);
             if (stockNo === getStockNumberFromUrl()) {
-                renderOverlay(json.data);
+                if (document.body) {
+                    renderOverlay(json.data);
+                } else {
+                    window.addEventListener('DOMContentLoaded', () => renderOverlay(json.data), { once: true });
+                }
             }
         }
     };
@@ -83,7 +95,11 @@
         try {
             const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || '';
             if (url.includes('/api/get-car/')) {
-                response.clone().json().then(handleApiData).catch(() => {});
+                response.clone().text().then((text) => {
+                    if (text && text.trim().startsWith('{')) {
+                        handleApiData(JSON.parse(text));
+                    }
+                }).catch(() => {});
             }
         } catch (e) {}
         return response;
@@ -94,7 +110,9 @@
         if (typeof url === 'string' && url.includes('/api/get-car/')) {
             this.addEventListener('load', function () {
                 try {
-                    handleApiData(JSON.parse(this.responseText));
+                    if (this.responseText && this.responseText.trim().startsWith('{')) {
+                        handleApiData(JSON.parse(this.responseText));
+                    }
                 } catch (e) {}
             });
         }
@@ -111,20 +129,19 @@
                 position: fixed;
                 bottom: 20px;
                 left: 20px;
-                width: 350px;
+                width: 365px;
                 max-height: 85vh;
                 background: #111827;
                 color: #f9fafb;
                 border: 1px solid #374151;
                 border-radius: 10px;
-                box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+                box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                 font-size: 13px;
                 z-index: 999999;
                 display: flex;
                 flex-direction: column;
                 overflow: hidden;
-                transition: opacity 0.2s ease;
             }
             #wbc-inspector-header {
                 background: #1f2937;
@@ -189,8 +206,8 @@
                 font-weight: 400;
                 font-size: 11.5px;
             }
-            .wbc-price-drop { color: #34d399; }
-            .wbc-price-up { color: #f87171; }
+            .wbc-good { color: #34d399; }
+            .wbc-bad { color: #f87171; }
             .wbc-warn { color: #fbbf24; }
             .wbc-video-btn {
                 display: inline-flex;
@@ -228,6 +245,20 @@
         if (existing) existing.remove();
     };
 
+    const formatPricingGrade = (gradeStr) => {
+        if (!gradeStr) return 'N/A';
+        if (/Grade\s*[12]/i.test(gradeStr) || /excessive wear/i.test(gradeStr)) {
+            return `<span class="wbc-bad">${gradeStr}</span>`;
+        }
+        if (/Grade\s*3/i.test(gradeStr)) {
+            return `<span class="wbc-warn">${gradeStr}</span>`;
+        }
+        if (/Grade\s*[45]/i.test(gradeStr) || /better than average/i.test(gradeStr)) {
+            return `<span class="wbc-good">${gradeStr}</span>`;
+        }
+        return gradeStr;
+    };
+
     const renderOverlay = (d) => {
         injectStyles();
         let panel = document.getElementById('wbc-inspector-panel');
@@ -244,7 +275,7 @@
         if (d.PreviousPrice && d.PreviousPrice > 0 && d.PreviousPrice !== d.Price) {
             const diff = d.Price - d.PreviousPrice;
             const pct = ((diff / d.PreviousPrice) * 100).toFixed(1);
-            const cls = diff < 0 ? 'wbc-price-drop' : 'wbc-price-up';
+            const cls = diff < 0 ? 'wbc-good' : 'wbc-bad';
             const sign = diff > 0 ? '+' : '';
             priceDiffHtml = `${formatCurrency(d.PreviousPrice)} <span class="${cls}">(${sign}${formatCurrency(diff)} / ${sign}${pct}%)</span>`;
         }
@@ -262,21 +293,22 @@
 
         // Roadworthy & Inspection
         const rwIssues = d.HasAnyRoadworthyRelevantIssues
-            ? `<span class="wbc-price-up">Yes (${d.RoadworthyRelevantIssues})</span>`
-            : `<span class="wbc-price-drop">None (0)</span>`;
+            ? `<span class="wbc-bad">Yes (${d.RoadworthyRelevantIssues})</span>`
+            : `<span class="wbc-good">None (0)</span>`;
 
         // Active plans & features
         const flags = [
             d.ActiveWarranty ? 'Warranty' : null,
-            d.ActiveMaintenance ? 'Maintenance Plan' : null,
+            d.ActiveMaintenance ? 'Maint. Plan' : null,
             d.Eval_Has_Car_Play_Android_Auto ? 'CarPlay/AA' : null,
             d.Eval_Has_Auto_Stop_Start ? 'Stop/Start' : null
         ].filter(Boolean);
 
         panel.innerHTML = `
-            <div id="wbc-inspector-header" title="Click to toggle">
+            <div id="wbc-inspector-header" title="Click to collapse/expand">
                 <div class="wbc-title">
                     <span>WBC Hidden Data</span>
+                    <span class="wbc-sub" style="color:#d1d5db;">#${d.StockNumber}</span>
                     ${d.StockTag ? `<span class="wbc-badge">${d.StockTag}</span>` : ''}
                 </div>
                 <span id="wbc-toggle-icon" style="color:#9ca3af;font-size:12px;">${wasCollapsed ? '▲' : '▼'}</span>
@@ -298,7 +330,7 @@
                 </div>` : ''}
                 <div class="wbc-row">
                     <span class="wbc-label">Pricing Grade</span>
-                    <span class="wbc-val">${d.PricingGrade || d.Condition || 'N/A'}</span>
+                    <span class="wbc-val">${formatPricingGrade(d.PricingGrade || d.Condition)}</span>
                 </div>
                 <div class="wbc-row">
                     <span class="wbc-label">MM Code Demand</span>
@@ -359,11 +391,6 @@
     };
 
     // --- 4. SPA Navigation & Fallback Fetch ---
-    const getStockNumberFromUrl = () => {
-        const match = window.location.pathname.match(/\/car-for-sale\/[^/]+\/[^/]+\/(\d+)/i);
-        return match ? match[1] : null;
-    };
-
     const checkRoute = () => {
         const stockNo = getStockNumberFromUrl();
         if (!stockNo) {
@@ -382,13 +409,16 @@
             return;
         }
 
-        // Fallback: If our interceptor missed the initial load or page came from cache, fetch directly after 800ms
+        // Fallback direct fetch if the page request completed before hook or came from cache
         setTimeout(async () => {
             if (currentStockNumber === stockNo && !vehicleCache.has(stockNo)) {
                 try {
                     const res = await origFetch(`${API_BASE}${stockNo}`);
-                    const json = await res.json();
-                    handleApiData(json);
+                    if (!res.ok) return;
+                    const text = await res.text();
+                    if (text && text.trim().startsWith('{')) {
+                        handleApiData(JSON.parse(text));
+                    }
                 } catch (err) {
                     console.error('[WBC Hidden Data] Fallback fetch failed:', err);
                 }
@@ -396,7 +426,6 @@
         }, 800);
     };
 
-    // Monitor SPA history changes
     const wrapHistory = (type) => {
         const orig = history[type];
         return function (...args) {
