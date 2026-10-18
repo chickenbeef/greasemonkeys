@@ -7,6 +7,8 @@
 // @match        https://www.webuycars.co.za/*
 // @run-at       document-start
 // @grant        none
+// @updateURL    https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/we-buy-cars-hidden-data.user.js
+// @downloadURL  https://raw.githubusercontent.com/chickenbeef/greasemonkeys/main/we-buy-cars-hidden-data.user.js
 // ==/UserScript==
 
 (function () {
