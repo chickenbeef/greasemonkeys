@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Amazon Price Filter Inputs
 // @namespace    https://amazon.com/
-// @version      1.1
+// @version      1.3
 // @description  Replaces the Amazon price slider with min/max input boxes and a submit button.
 // @author       chickenbeef
 // @match        https://*.amazon.com/*
@@ -75,40 +75,135 @@
     window.location.href = url.toString();
   }
 
+  function isInsideProductOrDealCard(el) {
+    return Boolean(
+      el.closest(
+        '[data-asin], [data-component-type="s-search-result"], [data-testid*="deal-card" i], [data-testid*="product-card" i], [data-testid="grid-deals-container"], .s-result-item, a, button'
+      )
+    );
+  }
+
+  function hasFilterControl(el) {
+    if (!el) return false;
+    return Boolean(
+      el.querySelector(
+        'input[type="range"], [role="slider"], [class*="slider" i], [id*="slider" i], a[href*="low-price="], a[href*="p_36"]'
+      )
+    );
+  }
+
+  function climbToFilterSection(startEl) {
+    let curr = startEl;
+    for (let depth = 0; depth < 5 && curr && curr.parentElement; depth++) {
+      if (hasFilterControl(curr) && !/^price$/i.test(curr.textContent.trim())) {
+        return curr;
+      }
+      const parent = curr.parentElement;
+      if (isInsideProductOrDealCard(parent)) break;
+      // Stop before climbing into a shared sidebar parent that holds multiple sliders (e.g. Price + Discount)
+      if (parent.querySelectorAll('input[type="range"]').length > 2) {
+        break;
+      }
+      curr = parent;
+    }
+    return hasFilterControl(curr) ? curr : null;
+  }
+
+  function findPriceHeading(root = document) {
+    const scope = document.getElementById('s-refinements') || root;
+    const headings = scope.querySelectorAll('span, h2, h3, h4, div, label');
+    for (const heading of headings) {
+      if (
+        heading.children.length === 0 &&
+        /^price$/i.test(heading.textContent.trim()) &&
+        !isInsideProductOrDealCard(heading)
+      ) {
+        const section = climbToFilterSection(heading);
+        if (section) return { heading, section };
+      }
+    }
+    return null;
+  }
+
   function findPriceSection() {
-    // 1. Direct ID / attribute matches
+    // 1. Direct ID / attribute matches strictly inside refinement sidebars
     const directMatch = document.querySelector(
       '#priceRefinements, #s-refinements [id="p_36"], #s-refinements [id*="p_36"], #s-refinements [data-filter-id="p_36"]'
     );
-    if (directMatch) {
-      return directMatch.closest('.a-section') || directMatch;
+    if (directMatch && !isInsideProductOrDealCard(directMatch)) {
+      const base = directMatch.closest('.a-section') || directMatch;
+      return climbToFilterSection(base) || base;
     }
 
-    // 2. Locate section via the "Price" heading text inside the sidebar
+    // 2. Locate section via the "Price" heading text that encloses a slider or refinement links
+    const matched = findPriceHeading();
+    if (matched) {
+      return matched.section;
+    }
+
+    // 3. Fallback: find any sidebar block holding price-related filter links
     const container = document.getElementById('s-refinements') || document;
-    const headings = container.querySelectorAll('span, h2, h3, div');
-    for (const heading of headings) {
-      if (heading.children.length === 0 && /^price$/i.test(heading.textContent.trim())) {
-        return heading.closest('.a-section') || heading.parentElement;
+    const priceLinks = container.querySelectorAll('a[href*="low-price="], a[href*="p_36"]');
+    for (const priceLink of priceLinks) {
+      if (!isInsideProductOrDealCard(priceLink)) {
+        return priceLink.closest('.a-section') || priceLink.parentElement;
       }
-    }
-
-    // 3. Fallback: find any block holding price-related links
-    const priceLink = container.querySelector('a[href*="low-price="], a[href*="p_36"]');
-    if (priceLink) {
-      return priceLink.closest('.a-section') || priceLink.parentElement;
     }
 
     return null;
   }
 
+  function getLowestCommonAncestor(nodes) {
+    if (!nodes.length) return null;
+    let lca = nodes[0];
+    for (let i = 1; i < nodes.length; i++) {
+      while (lca && !lca.contains(nodes[i])) {
+        lca = lca.parentElement;
+      }
+    }
+    return lca;
+  }
+
   function findSliderElement(section) {
     if (!section) return null;
-    const sliderThumb = section.querySelector('[role="slider"]');
-    if (sliderThumb) {
-      return sliderThumb.closest('.a-slider-container, .s-slider-container, [class*="slider"]') || sliderThumb.parentElement;
+
+    // 1. Check known dedicated outer slider containers first
+    const knownContainer = section.querySelector(
+      '#p_36\\/range-slider, .s-range-slider-container, .a-slider-container, .s-slider-container, [class*="slider-container" i], [class*="sliderContainer" i], [class*="rangeSlider" i]'
+    );
+    if (knownContainer && section.contains(knownContainer)) {
+      return knownContainer;
     }
-    return section.querySelector('.a-slider-container, .s-slider-container, [class*="slider"], [id*="slider"]');
+
+    // 2. Gather all slider inputs, thumbs, and slider-tagged elements in the section
+    const sliderNodes = Array.from(
+      section.querySelectorAll('input[type="range"], [role="slider"], [class*="slider" i], [id*="slider" i]')
+    );
+    if (!sliderNodes.length) return null;
+
+    let sliderBox = getLowestCommonAncestor(sliderNodes);
+    if (!sliderBox) return null;
+
+    if (
+      sliderBox.tagName === 'INPUT' ||
+      sliderBox.getAttribute('role') === 'slider'
+    ) {
+      sliderBox = sliderBox.parentElement;
+    }
+
+    // Climb up through inner track/thumb positioning wrappers that contain no extra text or links
+    while (
+      sliderBox &&
+      sliderBox.parentElement &&
+      sliderBox.parentElement !== section &&
+      section.contains(sliderBox.parentElement) &&
+      !sliderBox.parentElement.querySelector('a[href]') &&
+      sliderBox.parentElement.textContent.trim() === sliderBox.textContent.trim()
+    ) {
+      sliderBox = sliderBox.parentElement;
+    }
+
+    return sliderBox && sliderBox !== section ? sliderBox : null;
   }
 
   function createInputUI() {
@@ -123,11 +218,27 @@
     const container = document.createElement('div');
     container.id = 'custom-price-filter-container';
     container.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      margin: 8px 0;
-      font-size: 13px;
+      display: flex !important;
+      align-items: center !important;
+      gap: 5px !important;
+      margin: 8px 0 !important;
+      padding: 0 !important;
+      font-size: 13px !important;
+      line-height: 1 !important;
+    `;
+
+    const inputStyles = `
+      width: 58px !important;
+      height: 28px !important;
+      margin: 0 !important;
+      padding: 3px 6px !important;
+      border: 1px solid #888 !important;
+      border-radius: 4px !important;
+      font-size: 13px !important;
+      line-height: 20px !important;
+      box-sizing: border-box !important;
+      background: #fff !important;
+      color: #0f1111 !important;
     `;
 
     const minInput = document.createElement('input');
@@ -135,43 +246,44 @@
     minInput.placeholder = 'Min';
     minInput.value = min;
     minInput.step = 'any';
-    minInput.style.cssText = `
-      width: 58px;
-      padding: 3px 6px;
-      border: 1px solid #888;
-      border-radius: 4px;
-      font-size: 13px;
-      box-sizing: border-box;
-    `;
+    minInput.style.cssText = inputStyles;
 
     const separator = document.createElement('span');
     separator.textContent = '–';
+    separator.style.cssText = `
+      display: inline-flex !important;
+      align-items: center !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      line-height: 1 !important;
+    `;
 
     const maxInput = document.createElement('input');
     maxInput.type = 'number';
     maxInput.placeholder = 'Max';
     maxInput.value = max;
     maxInput.step = 'any';
-    maxInput.style.cssText = `
-      width: 58px;
-      padding: 3px 6px;
-      border: 1px solid #888;
-      border-radius: 4px;
-      font-size: 13px;
-      box-sizing: border-box;
-    `;
+    maxInput.style.cssText = inputStyles;
 
     const goBtn = document.createElement('button');
     goBtn.textContent = 'Go';
     goBtn.type = 'button';
     goBtn.style.cssText = `
-      padding: 3px 10px;
-      background: #ffd814;
-      border: 1px solid #fcd200;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
+      height: 28px !important;
+      margin: 0 !important;
+      padding: 0 10px !important;
+      background: #ffd814 !important;
+      border: 1px solid #fcd200 !important;
+      border-radius: 6px !important;
+      cursor: pointer !important;
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      line-height: 26px !important;
+      box-sizing: border-box !important;
+      color: #0f1111 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
     `;
 
     const triggerSubmit = () => {
@@ -188,12 +300,22 @@
     container.appendChild(goBtn);
 
     if (sliderElement) {
-      sliderElement.style.display = 'none';
+      sliderElement.style.setProperty('display', 'none', 'important');
+      priceSection
+        .querySelectorAll('input[type="range"], [role="slider"]')
+        .forEach((el) => el.style.setProperty('display', 'none', 'important'));
       sliderElement.parentNode.insertBefore(container, sliderElement);
     } else {
-      const header = priceSection.querySelector('span, h2, h3');
-      if (header && header.nextSibling) {
-        header.parentNode.insertBefore(container, header.nextSibling);
+      let headerBlock = priceSection.querySelector('span, h2, h3');
+      if (headerBlock) {
+        while (
+          headerBlock.parentElement &&
+          headerBlock.parentElement !== priceSection &&
+          /^price$/i.test(headerBlock.parentElement.textContent.trim())
+        ) {
+          headerBlock = headerBlock.parentElement;
+        }
+        headerBlock.after(container);
       } else {
         priceSection.prepend(container);
       }
